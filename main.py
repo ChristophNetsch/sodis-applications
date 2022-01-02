@@ -12,7 +12,7 @@ from language import language_mapper
 from knowledge_processing import get_knowledge_file_options, convert_txt2jsonl, update_knowledge_base, knowledge_available_online
 
 load_dotenv()
-language_definition = language_mapper.get(os.getenv("SODISAPP_LANGUAGE"), "DE")
+language_definition = language_mapper.get(os.getenv("SODISAPP_LANGUAGE", "DE"), "DE")
 
 def main() -> None:
     st.set_page_config(page_title=language_definition.get("app_title"), page_icon = FAVICON, initial_sidebar_state = 'auto')

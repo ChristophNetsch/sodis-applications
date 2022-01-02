@@ -27,7 +27,7 @@ definitions = {
     }
 
 class LanguageMapper(dict):
-    def get(self, key: Any, default:Any):
+    def get(self, key: Any, default:Any=None):
         value = super().get(key, default)
         if value is None:
             return ""
