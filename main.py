@@ -8,41 +8,42 @@ import json
 import logging
 
 from constants import *
+from language import language_mapper
 from knowledge_processing import get_knowledge_file_options, convert_txt2jsonl, update_knowledge_base, knowledge_available_online
 
 load_dotenv()
+language_definition = language_mapper.get(os.getenv("SODISAPP_LANGUAGE"), "DE")
 
 def main() -> None:
-    st.set_page_config(page_title='Frag Nico-Mario', page_icon = FAVICON, initial_sidebar_state = 'auto')
+    st.set_page_config(page_title=language_definition.get("app_title"), page_icon = FAVICON, initial_sidebar_state = 'auto')
 
     st.image(LOGO_IMG.resize( [int(0.5 * s) for s in LOGO_IMG.size]), use_column_width=True)
     
-    st.header('Fragen')
-    question = st.text_area("",value="Was ist denn Aktion Sodis?")
-    _, _, center, _, _ = st.columns(5)
-    button = center.button("Frag Nico-Mario!")
+    st.header(language_definition.get("Questions"))
+    question = st.text_area("",value="Was ist denn Aktion Sodis?", help="")
+    button = st.button(language_definition.get("app_title"))
+    answer_placeholder = st.empty()
     
-    st.header('Einstellungen')
-    col1, col2 = st.columns(2)
-    kf_name = col1.selectbox('Wähle eine hinterlegte Wissensquelle:', get_knowledge_file_options())
-    uploaded_file = col2.file_uploader("Oder wähle eine eigene Wissensquelle (TXT-Datei):")
-    _, _, center, _, _ = st.columns(5)
-    getfile = center.button("Einlesen..")
-    
-    col1, col2 = st.columns(2)
-    openai_org_key = col1.text_area("Open-AI Org.-Id.",value=os.getenv("OPENAI_ORG_ID"), height=18)
-    openai_secret = col2.text_area("Open-AI Key", height=18)
-    connect_openai_api(openai_secret, openai_org_key)
-    logging.info(f"Connecting to openai-api. With openai_org_key={openai_org_key}.")
-    
-    temperature = st.slider("Sprachmodell-Temperatur", min_value=0.0, max_value=2.0, value=0.1, step=0.01, help="Je höher, desto kreativer die Antworten")
-    max_tokens = st.slider("Max. Anzahl Tokens", min_value=8, max_value=500, value=100, step=1, help="Je höher, desto länger werden die Antworten potenziell.")
-    max_rerank = st.slider("Recherche-Gründlichkeit", min_value=50, max_value=500, value=300, step=1, help="Je höher, desto höher die Antwortqualität.")
-
+    with st.expander(language_definition.get("Settings")):
+        col1, col2 = st.columns(2)
+        kf_name = col1.selectbox(language_definition.get("knowledge_source_prompt"), get_knowledge_file_options())
+        uploaded_file = col2.file_uploader(language_definition.get("upload_knowledge_prompt"))
+        getfile = st.button(language_definition.get("Reading"))
+        
+        col1, col2 = st.columns(2)
+        openai_org_key = col1.text_area(language_definition.get("openai_orgid."),value=os.getenv("OPENAI_ORG_ID"), height=18)
+        # openai_secret = os.getenv("OPENAI_SECRET") 
+        openai_secret = col2.text_area(language_definition.get("openai_key"), height=18)
+        
+        temperature = st.slider(language_definition.get("sampling_temperature"), min_value=0.0, max_value=2.0, value=0.1, step=0.01, help=language_definition.get("sampling_temperature_help"))
+        max_tokens = st.slider(language_definition.get("max_tokens"), min_value=8, max_value=500, value=100, step=1, help=language_definition.get("max_tokens_help"))
+        max_rerank = st.slider(language_definition.get("max_rerank"), min_value=50, max_value=500, value=300, step=1, help=language_definition.get("max_rerank_help"))
 
     # Set filepaths for knowledge bank
     knowledge_jsonl = Path(KNOWLEDGE_FILEPATH, JSONLNAME)
     knowledge_txt = Path(kf_name)
+    connect_openai_api(openai_secret, openai_org_key)
+    logging.info(f"Connecting to openai-api. With openai_org_key={openai_org_key}.")
 
     if uploaded_file:
         string_data = uploaded_file.read()
@@ -55,16 +56,14 @@ def main() -> None:
         
         with open(knowledge_jsonl, 'w') as f:
             f.write(json_data)
-            
-        connect_openai_api(openai_secret, openai_org_key)
-        update_knowledge_base_and_sleep(knowledge_jsonl)
+        with answer_placeholder.spinner(text=language_definition.get('upload_wait')):   
+            update_knowledge_base_and_sleep(knowledge_jsonl)
 
     if getfile:
         if not uploaded_file:
             convert_txt2jsonl(knowledge_jsonl, knowledge_txt)
-        
-        connect_openai_api(openai_secret, openai_org_key)
-        update_knowledge_base_and_sleep(knowledge_jsonl)
+        with answer_placeholder.spinner(text=language_definition.get('upload_wait')):   
+            update_knowledge_base_and_sleep(knowledge_jsonl)
 
     # Knowledge engine question and answer
     if button:
@@ -72,8 +71,7 @@ def main() -> None:
 
         if can_query:
             try:
-                with st.spinner(text="Nico-Mario denkt nach..."):
-                    connect_openai_api(openai_secret, openai_org_key)
+                with st.spinner(text=language_definition.get("inference_wait")):
                     response_json = openai.Answer.create(
                         search_model="ada",
                         model="davinci",
@@ -88,23 +86,25 @@ def main() -> None:
                     )
                         
                 # Return answer to UI
-                st.markdown(response_json["answers"][0], unsafe_allow_html=False)
+                answer_placeholder.markdown(response_json["answers"][0], unsafe_allow_html=False)
                 
-            except openai.error.InvalidRequestError as ex:
-                st.error(f"Irgendwas ist schief gelaufen: ({ex.user_message}).")
+            except Exception as ex:
+                if isinstance(ex, openai.error.InvalidRequestError):
+                    answer_placeholder.error(f"{language_definition.get('inference_error')}: ({ex.user_message}).")
+                elif isinstance(ex, openai.error.AuthenticationError):
+                    answer_placeholder.error(f"{language_definition.get('authentication_error')}: ({ex.user_message}).")
 
 def connect_openai_api(openai_secret, openai_org_key):
     """API call to openAI."""
-    openai.organization = openai_secret
-    openai.api_key = openai_org_key
+    openai.organization = openai_org_key
+    openai.api_key = openai_secret
 
 def update_knowledge_base_and_sleep(knowledge_jsonl):
     try:
-        with st.spinner(text="Wissensquelle wird eingelesen..."):   
-            update_knowledge_base(knowledge_jsonl, knowledge_available_online)
-            sleep(5)
+        update_knowledge_base(knowledge_jsonl, knowledge_available_online)
+        sleep(5)
     except openai.error.InvalidRequestError as ex:
-        st.error(f"Irgendwas ist beim Hochladen schief gelaufen: ({ex.user_message}).")
+        st.error(f"{language_definition.get('upload_error')}: ({ex.user_message}).")
             
 if __name__ == "__main__":
     main()
