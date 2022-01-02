@@ -27,13 +27,13 @@ def main() -> None:
     with st.expander(language_definition.get("Settings")):
         col1, col2 = st.columns(2)
         kf_name = col1.selectbox(language_definition.get("knowledge_source_prompt"), get_knowledge_file_options())
-        uploaded_file = col2.file_uploader(language_definition.get("upload_knowledge_prompt"))
+        uploaded_file = col2.file_uploader(language_definition.get("upload_knowledge_prompt"), help=language_mapper.get("upload_help"))
         getfile = st.button(language_definition.get("Reading"))
         
         col1, col2 = st.columns(2)
-        openai_org_key = col1.text_area(language_definition.get("openai_orgid."),value=os.getenv("OPENAI_ORG_ID"), height=18)
+        openai_org_key = col1.text_area(language_definition.get("openai_orgid"),value=os.getenv("OPENAI_ORG_ID"), height=18, help=language_definition.get("openai_credential_help"))
         # openai_secret = os.getenv("OPENAI_SECRET") 
-        openai_secret = col2.text_area(language_definition.get("openai_key"), height=18)
+        openai_secret = col2.text_area(language_definition.get("openai_key"), height=18, help=language_definition.get("openai_credential_help"))
         
         temperature = st.slider(language_definition.get("sampling_temperature"), min_value=0.0, max_value=2.0, value=0.1, step=0.01, help=language_definition.get("sampling_temperature_help"))
         max_tokens = st.slider(language_definition.get("max_tokens"), min_value=8, max_value=500, value=100, step=1, help=language_definition.get("max_tokens_help"))
@@ -56,14 +56,12 @@ def main() -> None:
         
         with open(knowledge_jsonl, 'w') as f:
             f.write(json_data)
-        with st.spinner(text=language_definition.get('upload_wait')):   
-            update_knowledge_base_and_sleep(knowledge_jsonl)
+        update_knowledge_file(answer_placeholder, knowledge_jsonl)
 
     if getfile:
         if not uploaded_file:
             convert_txt2jsonl(knowledge_jsonl, knowledge_txt)
-        with st.spinner(text=language_definition.get('upload_wait')):   
-            update_knowledge_base_and_sleep(knowledge_jsonl)
+        update_knowledge_file(answer_placeholder, knowledge_jsonl)
 
     # Knowledge engine question and answer
     if button:
@@ -93,6 +91,13 @@ def main() -> None:
                     answer_placeholder.error(f"{language_definition.get('inference_error')}: ({ex.user_message}).")
                 elif isinstance(ex, openai.error.AuthenticationError):
                     answer_placeholder.error(f"{language_definition.get('authentication_error')}: ({ex.user_message}).")
+
+def update_knowledge_file(answer_placeholder, knowledge_jsonl):
+    with st.spinner(text=language_definition.get('upload_wait')): 
+        try:  
+            update_knowledge_base_and_sleep(knowledge_jsonl)
+        except openai.error.AuthenticationError as ex:
+            answer_placeholder.error(f"{language_definition.get('authentication_error')}: ({ex.user_message}).")
 
 def connect_openai_api(openai_secret, openai_org_key):
     """API call to openAI."""
