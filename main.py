@@ -56,13 +56,13 @@ def main() -> None:
         
         with open(knowledge_jsonl, 'w') as f:
             f.write(json_data)
-        with answer_placeholder.spinner(text=language_definition.get('upload_wait')):   
+        with st.spinner(text=language_definition.get('upload_wait')):   
             update_knowledge_base_and_sleep(knowledge_jsonl)
 
     if getfile:
         if not uploaded_file:
             convert_txt2jsonl(knowledge_jsonl, knowledge_txt)
-        with answer_placeholder.spinner(text=language_definition.get('upload_wait')):   
+        with st.spinner(text=language_definition.get('upload_wait')):   
             update_knowledge_base_and_sleep(knowledge_jsonl)
 
     # Knowledge engine question and answer
