@@ -1,49 +1,17 @@
-from typing import Tuple
 from dotenv import load_dotenv
 from time import sleep
 import openai
 import streamlit as st
-import os.path
 from pathlib import Path
+import os
 import json
 import logging
-from PIL import Image
+
+from constants import *
+from knowledge_processing import get_knowledge_file_options, convert_txt2jsonl, update_knowledge_base, knowledge_available_online
 
 load_dotenv()
-KNOWLEDGE_FILEPATH = Path("wissensquellen")
-LOGO_IMG = Image.open('resources/nico_mario.png')
-FAVICON = Image.open('resources/favicon.png')
-JSONLNAME = "knowledge_jsonl.jsonl"  # Do not change
 
-def get_knowledge_file_options() -> Tuple[str]:
-    return tuple([*KNOWLEDGE_FILEPATH.glob("*.txt")])
-
-def convert_txt2jsonl(knowledge_jsonl:Path, knowledge_txt:Path) -> None:
-    # Process generating knew knowldege file
-    with open(knowledge_txt, encoding="utf8") as f:
-        lines = [{"text": line} for line in f.read().splitlines() if line]
-
-    # Convert to a list of JSON strings
-    json_lines = [json.dumps(l) for l in lines]
-
-    # Join lines and save to .jsonl file
-    json_data = '\n'.join(json_lines)
-    with open(knowledge_jsonl, 'w') as f:
-        f.write(json_data)
-
-def knowledge_available_online() -> bool:
-    return len(openai.File.list()['data']) >= 1
-
-# Process knowledge file
-def update_knowledge_base(knowledge_jsonl:Path, knowledge_available_online:Path):
-    # Delete existing file from API
-    if knowledge_available_online():
-        openai.File.delete(openai.File.list()['data'][0]['id'])
-        openai.File.list()
-
-    # Open knowledge base
-    openai.File.create(file=open(knowledge_jsonl, encoding="utf8"), purpose='answers')
-     
 def main() -> None:
     # API call to openAI
     logging.info(f"Connecting to OPENAI API via organization key {os.getenv('OPENAI_ORGANIZATION')}.")
