@@ -27,9 +27,9 @@ def main() -> None:
     uploaded_file = st.file_uploader("Oder wähle eine eigene Wissensquelle (TXT-Datei):")
     getfile = st.button("Einlesen..")
 
-    temperature = st.slider("Sprachmodell-Temperatur", min_value=0.0, max_value=1.0, value=0.1, step=0.01, help="Je höher, desto kreativer die Antworten")
-    max_tokens = st.slider("Max. Anzahl Tokens", min_value=100, max_value=500, value=300, step=1, help="Je höher, desto länger werden die Antworten potenziell.")
-    max_rerank = st.slider("Recherche-Gründlichkeit", min_value=100, max_value=500, value=300, step=1, help="Je höher, desto höher die Antwortqualität.")
+    temperature = st.slider("Sprachmodell-Temperatur", min_value=0.0, max_value=2.0, value=0.1, step=0.01, help="Je höher, desto kreativer die Antworten")
+    max_tokens = st.slider("Max. Anzahl Tokens", min_value=8, max_value=500, value=100, step=1, help="Je höher, desto länger werden die Antworten potenziell.")
+    max_rerank = st.slider("Recherche-Gründlichkeit", min_value=50, max_value=500, value=300, step=1, help="Je höher, desto höher die Antwortqualität.")
     
     st.header('Fragen')
 
