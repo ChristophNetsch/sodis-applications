@@ -31,7 +31,7 @@ def main() -> None:
         getfile = st.button(language_definition.get("Reading"))
         
         col1, col2 = st.columns(2)
-        openai_org_key = col1.text_area(language_definition.get("openai_orgid"),value=os.getenv("OPENAI_ORG_ID"), height=18, help=language_definition.get("openai_credential_help"))
+        openai_org_key = col1.text_area(language_definition.get("openai_orgid"),value=os.getenv("OPENAI_ORG_ID", ""), height=18, help=language_definition.get("openai_credential_help"))
         # openai_secret = os.getenv("OPENAI_SECRET") 
         openai_secret = col2.text_area(language_definition.get("openai_key"), height=18, help=language_definition.get("openai_credential_help"))
         
